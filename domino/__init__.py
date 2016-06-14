@@ -107,22 +107,14 @@ class Domino(requests.Session):
         for viewentry in sequence:
             yield self.marshal_view_entry(viewentry)
 
-    def emails(self, matcher=None, **options):
+    def emails(self, **options):
         """
-        Generator to yield emails (unid, datetime, subject, body). Use matcher
-        to avoid downloading the body of emails not wanted--an expensive call.
-        It should be a callable that returns True for the emails you want to
-        keep.
+        Generator to yield emails (unid, datetime, subject, body)
         """
         jsondata = self.view_entries(**options)
 
         # this list of dicts of view entries is under key 'viewentry'
         marshalgenerator = self.marshal_view_entries(jsondata['viewentry'])
 
-        if matcher is None:
-            for view_entry in marshalgenerator:
-                yield view_entry
-        else:
-            for view_entry in marshalgenerator:
-                if matcher(view_entry):
-                    yield view_entry
+        for view_entry in marshalgenerator:
+            yield view_entry
