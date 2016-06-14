@@ -1,0 +1,1 @@
+Python library for reading Domino/Lotus iNotes emails.
