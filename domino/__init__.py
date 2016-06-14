@@ -1,22 +1,19 @@
 import datetime as dt
-import copy
-import json
 import requests
-
-from pprint import pprint as pp
 
 from bs4 import BeautifulSoup as BS
 
 class Email(object):
 
-    def __init__(self, domino, unid, datetime, subject):
+    def __init__(self, domino, unid, datetime, subject, body):
         self.domino = domino
         self.unid = unid
         self.datetime = datetime
         self.subject = subject
+        self.body = body
 
-    def body(self):
-        return self.domino.open_document(self.unid)
+
+# no idea if this works for all servers
 
 class Domino(requests.Session):
 
@@ -48,15 +45,7 @@ class Domino(requests.Session):
             view = '$defaultview'
 
         url = '%s/mail/%s.nsf/%s/%s?OpenDocument&ui=webmail' % (self.host, self.username, view, unid)
-
-        response = self.get(url)
-
-        soup = BS(response.text, 'html.parser')
-
-        pre = soup.find('pre')
-
-        return pre.string.strip()
-
+        return self.get(url)
 
     def view_entries_url(self, view=None, **options):
         if view is None:
@@ -66,11 +55,26 @@ class Domino(requests.Session):
         return '&'.join((baseurl, ) + tuple('%s=%s' % (k, v) for k,v in options.items()))
 
     def view_entries(self, view=None, **options):
+        """
+        Get result of ReadViewEntries. Setting OutputFormat in options is
+        ignored and JSON is always used.
+
+        key/values of options are case insensitive and values are converted to strings.
+
+        options defaults:
+        ResortAscending = '4' (the datetime)
+        Count = '25' (download at most 25 entries)
+
+        see: http://www.ibm.com/developerworks/lotus/library/ls-Domino_URL_cheat_sheet/
+
+        :param view: no idea what this does, $default seems to work well.
+        :param options: optional arguments for ReadViewEntries, see link above.
+        """
         assert all(map(lambda k: isinstance(k, basestring), options.keys()))
 
         options = { k.lower(): str(v).lower() for k,v in options.items() }
 
-        options.setdefault('outputformat', 'json')
+        options['outputformat'] = 'json'
         options.setdefault('resortascending', '4') # datetime
         options.setdefault('count', '25')
 
@@ -79,31 +83,24 @@ class Domino(requests.Session):
         url = self.view_entries_url(view=view, **options)
         response = self.get(url)
 
-        if options.get('outputformat', False):
-            return response.json()
+        return response.json()
 
-        return response
+    def get_body(self, unid, view=None):
+        response = self.open_document(unid, view=view)
+        soup = BS(response.text, 'html.parser')
+        pre = soup.find('pre')
+        return pre.string.strip()
 
     def marshal_view_entry(self, source):
-        metadata = dict(
-            noteid = source['@noteid'],
-            position = int(source['@position']),
-            siblings = int(source['@siblings']),
-            unid = source['@unid'],
-        )
-        emaildata = dict(
-            subject = source['entrydata'][3]['text']['0'],
+        unid = source['@unid']
 
-            # NOTE: this datetime entry has 'dst', daylight savings time
-            #       theres ',00-04' crap at the end of the datetime
-            datetime = dt.datetime.strptime(source['entrydata'][4]['datetime']['0'][:15], '%Y%m%dT%H%M%S')
-        )
-        viewentry = {'__metadata__': metadata}
-        viewentry.update(**emaildata)
+        datefmt = '%Y%m%dT%H%M%S'
+        datestr = source['entrydata'][4]['datetime']['0'][:len(datefmt)]
+        datetime = dt.datetime.strptime(datestr, datefmt)
 
-        # not sure if I want to throw away all that yet
-
-        email = Email(self, viewentry['__metadata__']['unid'], viewentry['datetime'], viewentry['subject'])
+        subject = source['entrydata'][3]['text']['0']
+        body = self.get_body(unid)
+        email = Email(self, unid, datetime, subject, body)
         return email
 
     def marshal_view_entries(self, sequence):
@@ -111,17 +108,21 @@ class Domino(requests.Session):
             yield self.marshal_view_entry(viewentry)
 
     def emails(self, matcher=None, **options):
+        """
+        Generator to yield emails (unid, datetime, subject, body). Use matcher
+        to avoid downloading the body of emails not wanted--an expensive call.
+        It should be a callable that returns True for the emails you want to
+        keep.
+        """
         jsondata = self.view_entries(**options)
 
         # this list of dicts of view entries is under key 'viewentry'
-        view_entries = jsondata['viewentry']
-
-        marshalgenerator = self.marshal_view_entries(view_entries)
+        marshalgenerator = self.marshal_view_entries(jsondata['viewentry'])
 
         if matcher is None:
             for view_entry in marshalgenerator:
                 yield view_entry
-
-        for view_entry in marshalgenerator:
-            if matcher(view_entry):
-                yield view_entry
+        else:
+            for view_entry in marshalgenerator:
+                if matcher(view_entry):
+                    yield view_entry

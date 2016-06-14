@@ -18,7 +18,7 @@ def main():
         print 'i: %s' % i
         print 'subject: %s' % email.subject
         print 'body:'
-        print email.body()
+        print email.body
         if i > 3:
             break
 
