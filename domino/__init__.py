@@ -9,6 +9,9 @@ class Email(object):
         self.unid = unid
         self.datetime = datetime
         self.subject = subject
+
+        #TODO: an interface or something to delay downloading the email body
+        #      (expensive) until needed
         self.body = body
 
     def __eq__(self, other):
