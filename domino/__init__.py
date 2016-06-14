@@ -5,12 +5,14 @@ from bs4 import BeautifulSoup as BS
 
 class Email(object):
 
-    def __init__(self, domino, unid, datetime, subject, body):
-        self.domino = domino
+    def __init__(self, unid, datetime, subject, body):
         self.unid = unid
         self.datetime = datetime
         self.subject = subject
         self.body = body
+
+    def __str__(self):
+        return '%s: %s' % (self.datetime, self.subject)
 
 
 # no idea if this works for all servers
@@ -100,7 +102,7 @@ class Domino(requests.Session):
 
         subject = source['entrydata'][3]['text']['0']
         body = self.get_body(unid)
-        email = Email(self, unid, datetime, subject, body)
+        email = Email(unid, datetime, subject, body)
         return email
 
     def marshal_view_entries(self, sequence):
