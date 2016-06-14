@@ -11,6 +11,12 @@ class Email(object):
         self.subject = subject
         self.body = body
 
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and self.__dict__ == other.__dict__)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         return '%s: %s' % (self.datetime, self.subject)
 
@@ -91,6 +97,8 @@ class Domino(requests.Session):
         response = self.open_document(unid, view=view)
         soup = BS(response.text, 'html.parser')
         pre = soup.find('pre')
+        if pre is None:
+            return ''
         return pre.string.strip()
 
     def marshal_view_entry(self, source):
