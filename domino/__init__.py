@@ -5,14 +5,20 @@ from bs4 import BeautifulSoup as BS
 
 class Email(object):
 
-    def __init__(self, unid, datetime, subject, body):
+    def __init__(self, unid, datetime, subject, domino=None):
         self.unid = unid
         self.datetime = datetime
         self.subject = subject
+        self._domino = domino
 
-        #TODO: an interface or something to delay downloading the email body
-        #      (expensive) until needed
-        self.body = body
+    def get_body(self):
+        if self._domino is None:
+            raise RuntimeError("Can't download body, need %r instance" % Domino)
+        return self._domino.get_body(self.unid)
+
+    @property
+    def body(self):
+        return self.get_body()
 
     def __eq__(self, other):
         return (isinstance(other, self.__class__) and self.__dict__ == other.__dict__)
@@ -113,7 +119,7 @@ class Domino(requests.Session):
 
         subject = source['entrydata'][3]['text']['0']
         body = self.get_body(unid)
-        email = Email(unid, datetime, subject, body)
+        email = Email(unid, datetime, subject, domino=self)
         return email
 
     def marshal_view_entries(self, sequence):
