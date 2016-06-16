@@ -118,7 +118,6 @@ class Domino(requests.Session):
         datetime = dt.datetime.strptime(datestr, datefmt)
 
         subject = source['entrydata'][3]['text']['0']
-        body = self.get_body(unid)
         email = Email(unid, datetime, subject, domino=self)
         return email
 
