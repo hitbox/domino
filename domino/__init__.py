@@ -21,7 +21,10 @@ class Email(object):
         return self.get_body()
 
     def __eq__(self, other):
-        return (isinstance(other, self.__class__) and self.__dict__ == other.__dict__)
+        if isinstance(other, self.__class__):
+            return self.unid == other.unid
+        else:
+            raise NotImplementedError(other.__class__.__name__)
 
     def __ne__(self, other):
         return not self.__eq__(other)
