@@ -1,25 +1,40 @@
 import argparse
+import pickle
 
 from . import Domino
 
+def load_bodies(emails):
+    # access the body attribute to make emails load their body
+    for email in emails:
+        print 'loading body: %s' % email
+        email.body
+
 def main():
-    parser = argparse.ArgumentParser()
+    """
+    Dump emails
+    """
+    parser = argparse.ArgumentParser(main.__doc__)
     parser.add_argument('host')
     parser.add_argument('username')
     parser.add_argument('password')
+
+    parser.add_argument('-n', '--max', metavar='NUM', default=10, help='Get NUM emails from inbox.')
+    parser.add_argument('-P', '--pickle', metavar='FILE', help='dump emails to pickle FILE.')
 
     args = parser.parse_args()
 
     inbox = Domino(args.host, args.username, args.password)
     inbox.login()
 
-    for i, email in enumerate(inbox.emails()):
-        print
-        print 'i: %s' % i
-        print 'subject: %s' % email.subject
-        print 'body:'
-        print email.body
-        if i > 3:
-            break
+    emailsgenerator = inbox.emails(count=args.max)
+
+    if args.pickle:
+        with open(args.pickle, 'wb') as outputfile:
+            emails = list(emailsgenerator)
+            load_bodies(emails)
+            pickle.dump(emails, outputfile)
+    else:
+        for email in emailsgenerator:
+            print email
 
 main()

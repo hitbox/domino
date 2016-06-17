@@ -10,6 +10,7 @@ class Email(object):
         self.datetime = datetime
         self.subject = subject
         self._domino = domino
+        self._body = None
 
     def get_body(self):
         if self._domino is None:
@@ -18,7 +19,9 @@ class Email(object):
 
     @property
     def body(self):
-        return self.get_body()
+        if self._body is None:
+            self._body = self.get_body()
+        return self._body
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
