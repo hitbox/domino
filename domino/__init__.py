@@ -126,7 +126,7 @@ class Domino(requests.Session):
         unid = source['@unid']
 
         datefmt = '%Y%m%dT%H%M%S'
-        datestr = source['entrydata'][4]['datetime']['0'][:len(datefmt)]
+        datestr = source['entrydata'][4]['datetime']['0'][:15]
         datetime = dt.datetime.strptime(datestr, datefmt)
 
         subject = source['entrydata'][3]['text']['0']
