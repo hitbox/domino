@@ -1,3 +1,4 @@
+import hashlib
 import datetime as dt
 import requests
 
@@ -22,6 +23,11 @@ class Email(object):
         if self._body is None:
             self._body = self.get_body()
         return self._body
+
+    def __hash__(self):
+        # hash string into integer
+        # http://stackoverflow.com/questions/1779879/convert-32-char-md5-string-to-integer/1779913#1779913
+        return int(hashlib.md5(self.unid).hexdigest(), 16)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
