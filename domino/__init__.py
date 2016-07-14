@@ -62,7 +62,8 @@ class Domino(requests.Session):
         return '%s/names.nsf?Login&username=%s&password=%s' % (self.host, username, password)
 
     def login(self, silent=False):
-        response = self.get(self.login_url(self.username, self.password))
+        url = self.login_url(self.username, self.password)
+        response = self.get(url, timeout=5)
         login_success = u'You provided an invalid username or password.' not in response.text
         if silent:
             return login_success
