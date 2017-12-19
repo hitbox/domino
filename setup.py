@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='domino',
-      version='0.1',
+      version='0.3',
       description='Read domino emails.',
       url='https://bitbucket.org/buildupthatwall/domino',
       license='MIT',

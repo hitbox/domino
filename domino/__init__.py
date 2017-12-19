@@ -27,7 +27,7 @@ class Email(object):
     def __hash__(self):
         # hash string into integer
         # http://stackoverflow.com/questions/1779879/convert-32-char-md5-string-to-integer/1779913#1779913
-        return int(hashlib.md5(self.unid).hexdigest(), 16)
+        return int(hashlib.md5(self.unid.encode()).hexdigest(), 16)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -100,7 +100,7 @@ class Domino(requests.Session):
         :param view: no idea what this does, $default seems to work well.
         :param options: optional arguments for ReadViewEntries, see link above.
         """
-        assert all(map(lambda k: isinstance(k, basestring), options.keys()))
+        assert all(map(lambda k: isinstance(k, str), options.keys()))
 
         options = { k.lower(): str(v).lower() for k,v in options.items() }
 
