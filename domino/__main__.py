@@ -6,19 +6,19 @@ from . import Domino
 def load_bodies(emails):
     # access the body attribute to make emails load their body
     for email in emails:
-        print 'loading body: %s' % email
+        print('loading body: %s' % email)
         email.body
 
 def main():
     """
     Dump emails
     """
-    parser = argparse.ArgumentParser(main.__doc__)
+    parser = argparse.ArgumentParser(prog='domino', description=main.__doc__)
     parser.add_argument('host')
     parser.add_argument('username')
     parser.add_argument('password')
 
-    parser.add_argument('-n', '--max', metavar='NUM', default=10, help='Get NUM emails from inbox.')
+    parser.add_argument('-n', '--max', metavar='NUM', default=10, help='Get NUM emails from inbox. Default: %(default)s')
     parser.add_argument('-P', '--pickle', metavar='FILE', help='dump emails to pickle FILE.')
 
     args = parser.parse_args()
@@ -35,6 +35,6 @@ def main():
             pickle.dump(emails, outputfile)
     else:
         for email in emailsgenerator:
-            print email
+            print(email)
 
 main()
