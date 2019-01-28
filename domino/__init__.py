@@ -1,10 +1,17 @@
-import hashlib
 import datetime as dt
 import requests
 
 from bs4 import BeautifulSoup as BS
 
-class Email(object):
+class EmailError(Exception):
+    pass
+
+
+class DominoError(Exception):
+    pass
+
+
+class Email:
 
     def __init__(self, unid, datetime, subject, domino=None):
         self.unid = unid
@@ -15,7 +22,7 @@ class Email(object):
 
     def get_body(self):
         if self._domino is None:
-            raise RuntimeError("Can't download body, need %r instance" % Domino)
+            raise EmailError(f"Can't download body, need {Domino!r} instance")
         return self._domino.get_body(self.unid)
 
     @property
@@ -23,11 +30,6 @@ class Email(object):
         if self._body is None:
             self._body = self.get_body()
         return self._body
-
-    def __hash__(self):
-        # hash string into integer
-        # http://stackoverflow.com/questions/1779879/convert-32-char-md5-string-to-integer/1779913#1779913
-        return int(hashlib.md5(self.unid.encode()).hexdigest(), 16)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -39,49 +41,47 @@ class Email(object):
         return not self.__eq__(other)
 
     def __str__(self):
-        return '%s: %s' % (self.datetime, self.subject)
+        return f'{self.datetime!r}: {self.subject!r}'
 
 
-# no idea if this works for all servers
-
-class Domino(requests.Session):
+class Domino:
 
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.84 Safari/537.36'}
 
     def __init__(self, host, username, password):
-        super(Domino, self).__init__()
+        self.session = requests.Session()
         self.host = host
         self.username = username
         self.password = password
 
     def get(self, *args, **kwargs):
         kwargs.setdefault('headers', self.headers)
-        return super(Domino, self).get(*args, **kwargs)
+        return self.session.get(*args, **kwargs)
 
-    def login_url(self, username, password):
-        return '%s/names.nsf?Login&username=%s&password=%s' % (self.host, username, password)
+    def login_url(self):
+        return f'{self.host}/names.nsf?Login&username={self.username}&password={self.password}'
 
     def login(self, silent=False):
-        url = self.login_url(self.username, self.password)
+        url = self.login_url()
         response = self.get(url, timeout=5)
         login_success = u'You provided an invalid username or password.' not in response.text
         if silent:
             return login_success
         elif not login_success:
-            raise RuntimeError('Username and password invalid.')
+            raise DominoError('Username and password invalid.')
 
     def open_document(self, unid, view=None):
         if view is None:
             view = '$defaultview'
 
-        url = '%s/mail/%s.nsf/%s/%s?OpenDocument&ui=webmail' % (self.host, self.username, view, unid)
+        url = f'{self.host}/mail/{self.username}.nsf/{view}/{unid}?OpenDocument&ui=webmail'
         return self.get(url)
 
     def view_entries_url(self, view=None, **options):
         if view is None:
             view = '$defaultview'
 
-        baseurl = '%s/mail/%s.nsf/%s?ReadViewEntries' % (self.host, self.username, view)
+        baseurl = f'{self.host}/mail/{self.username}.nsf/{view}?ReadViewEntries'
         return '&'.join((baseurl, ) + tuple('%s=%s' % (k, v) for k,v in options.items()))
 
     def view_entries(self, view=None, **options):
